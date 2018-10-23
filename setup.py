@@ -23,9 +23,9 @@ setup(
     #long_description_content_type='text/markdown',
     keywords='github wordpress backup sync',
     packages=find_packages(),
-    #install_requires=[
-    #    'gitpython',
-    #],
+    install_requires=[
+        'dill',
+    ],
     #entry_points = {
     #    'console_scripts': [
     #        'axju=axju.__main__:main',

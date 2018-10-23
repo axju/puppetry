@@ -1,57 +1,47 @@
-import socket, pickle
+from puppetry.tools import send as _send
 
-from puppetry.tools import _send, _recv
+def _load_method(addr):
+    cls = _send(addr, {'func': 'cls'})
+    return [name for name in cls.__dict__]
 
-class JsonClient(object):
-    socket = None
 
-    def __del__(self):
-        self.close()
+def _load_variabl(addr):
+    obj = _send(addr, {'func': 'obj'})
+    return [name for name in obj.__dict__]
 
-    def connect(self, host, port):
-        self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.socket.settimeout(1)
-        self.socket.connect((host, port))
-        return self
 
-    def send(self, data):
-        if not self.socket:
-            raise Exception('You have to connect first before sending data')
-        _send(self.socket, data)
-        return self
+class Wrapper(object):
 
-    def recv(self):
-        if not self.socket:
-            raise Exception('You have to connect first before receiving data')
-        return _recv(self.socket)
+    def __init__(self, addr, method):
+        self.addr = addr
+        self.method = method
 
-    def recv_and_close(self):
-        data = self.recv()
-        self.close()
-        return data
-
-    def close(self):
-        if self.socket:
-            self.socket.close()
-        self.socket = None
+    def __call__(self, **kwargs):
+        return _send(self.addr, {'method': self.method, 'kwargs': kwargs})
 
 
 class RemoteClient(object):
 
-    def __init__(self, cls, host='localhost', port=12345):
-        super(RemoteClient, self).__init__()
-        self.cls = cls
+    def __init__(self, host, port, load=True):
+        self._meta = {'addr': (host, port), 'method': [], 'variabl': []}
 
-        self.client = JsonClient()
-        self.client.connect(host, port)
+        if load:
+            self._meta['method'] = _load_method((host, port))
+            self._meta['variabl'] = _load_variabl((host, port))
 
-    def __del__(self):
-        self.close()
 
-    def close(self):
-        self.client.close()
+    def __getattr__(self, name):
+        if name in self._meta['method']:
+            return Wrapper(self._meta['addr'], name)
 
-    def send(self, name, **kwargs):
-        self.client.send({'name': name, 'kwargs': kwargs})
-        return self.client.recv()
-        #print(result)
+        if name in self._meta['variabl']:
+            return _send(self._meta['addr'], {'variabl': name})
+
+
+    def __setattr__(self, name, value):
+        if name == '_meta':
+            super(RemoteClient, self).__setattr__(name, value)
+        elif name in self._meta['variabl']:
+            _send(self._meta['addr'], {'variabl': name, 'value': value})
+        else:
+            raise Exception('No attribut named {}'.format(name))

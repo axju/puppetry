@@ -39,8 +39,8 @@ Client::
       def joke(self):
           return "Spam spam spam"
 
-  server = RemoteClient(HelloWorld)
-  print(server.send('joke'))
+  client = RemoteClient(HelloWorld)
+  print(client.send('joke'))
 
 
 Development

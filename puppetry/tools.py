@@ -1,31 +1,33 @@
-import pickle
+import socket
+import hashlib
+import hmac
 
-def _send(socket, data):
+#import pickle as serializer
+import dill as serializer
+
+def decode(data, key):
+    pickled_data = serializer.dumps(data)
+    digest =  hmac.new(key, pickled_data, hashlib.sha1).hexdigest()
+    header = '%s' % (digest)
+    return '{} {}'.format(header, pickled_data).encode()
+
+def encode(data, key):
+    recvd_digest, pickled_data = data.split(' ')
+    new_digest = hmac.new(key, pickled_data.encode(), hashlib.sha1).hexdigest()
+    if recvd_digest != new_digest:
+        return False
+        #print 'Integrity check failed'
+    else:
+        return serializer.loads(pickled_data)
+
+
+def send(addr, data):
+    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     try:
-        serialized = pickle.dumps(data)
-    except (TypeError, ValueError) as e:
-        raise Exception('You can only send JSON-serializable data')
-
-    # send the length of the serialized data first
-    socket.send('{}\n'.format(len(serialized)).encode())
-
-    # send the serialized data
-    socket.send(serialized)
-
-
-def _recv(socket):
-    # read the length of the data, letter by letter until we reach EOL
-    length_str = ''
-    while True:
-        char = socket.recv(1).decode()
-        if char == '\n': break
-        length_str += char
-    total = int(length_str)
-
-    serialized = socket.recv(total)
-    try:
-        deserialized = pickle.loads(serialized)
-    except (TypeError, ValueError) as e:
-        raise Exception('Data received was not in JSON format')
-
-    return deserialized
+        sock.connect(addr)
+        #sock.sendall(serializer.dumps(data))
+        #return serializer.loads(sock.recv(1024))
+        sock.sendall(decode(data, '123'))
+        return encode(sock.recv(1024), '123')
+    finally:
+        sock.close()

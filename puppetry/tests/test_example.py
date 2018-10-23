@@ -1,8 +1,11 @@
 import unittest
 
-class TestStringMethods(unittest.TestCase):
+from puppetry.tools import
 
-    def test_upper(self):
+class TestTools(unittest.TestCase):
+
+    def test_send(self):
+        server = JsonServer()
         self.assertEqual('foo'.upper(), 'FOO')
 
     def test_isupper(self):

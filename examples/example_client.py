@@ -1,8 +1,13 @@
-from puppetry.client import RemoteClient
+from puppetry import RemoteClient
 
-class HelloWorld(object):
-    def joke(self):
-        return "Spam spam spam"
 
-server = RemoteClient(HelloWorld)
-print(server.send('joke'))
+HOST, PORT = "localhost", 9999
+
+client = RemoteClient(HOST, PORT)
+print(client.hello())
+
+client.setup(name='Test')
+print(client.hello())
+
+client.name = 'Axel'
+print(client.hello())

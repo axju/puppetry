@@ -1,81 +1,85 @@
-import socket
+import socketserver
+import threading
+#import pickle as serializer
+import dill as serializer
 
-from puppetry.tools import _send, _recv
+from puppetry.tools import decode, encode
 
-class JsonServer(object):
+class PuppetryHandler(socketserver.BaseRequestHandler):
 
-    socket = None
+    def method(self, data):
+        method_to_call = getattr(self.server.obj, data['method'])
+        if 'kwargs' in data:
+            return method_to_call(**data['kwargs'])
+        else:
+            return method_to_call()
 
-    def __init__(self, host='localhost', port=12345):
-        super(JsonServer, self).__init__()
-        self.host = host
-        self.port = port
-        self.bind()
+    def variabl(self, data):
+        if 'value' in data:
+            return setattr(self.server.obj, data['variabl'], data['value'])
+        return getattr(self.server.obj, data['variabl'])
 
-    def __del__(self):
-        self.close()
+    def func(self, data):
+        if data['func'] == 'cls':
+            return self.server.obj.__class__
 
-    def bind(self):
-        self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.socket .setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        self.socket.settimeout(1)
-        self.socket.bind((self.host, self.port))
-        self.socket.listen(1)
+        if data['func'] == 'obj':
+            return self.server.obj
 
-    def accept(self):
-        if self.client: self.client.close()
-        if not self.socket: self.bind()
+    def handle(self):
+        serialized = self.request.recv(1024)
+        print(serialized)
+        #data = serializer.loads(serialized)
+        data = encode(serialized, '123')
+        print(data)
+        #print('recv() ->', data)
 
-        while True:
-            try:
-                self.client, addr = self.socket.accept()
-                break
-            except socket.timeout:
-                pass
-            except Exception as e:
-                break
+        if 'method' in data:
+            result = self.method(data)
 
-        return self
+        if 'variabl' in data:
+            result = self.variabl(data)
 
-    def send(self, data):
-        if not self.client:
-            raise Exception('Cannot send data, no client is connected')
-        _send(self.client, data)
-        return self
+        if 'func' in data:
+            result = self.func(data)
 
-    def recv(self):
-        if not self.client:
-            raise Exception('Cannot receive data, no client is connected')
-        return _recv(self.client)
-
-    def close(self):
-        if self.client:
-            self.client.close()
-            self.client = None
-        if self.socket:
-            self.socket.close()
-            self.socket = None
+        #self.request.send(serializer.dumps(result))
+        self.request.send(decode(result, '123'))
 
 
-class RemoteServer(JsonServer):
-    client = None
+class ThreadedTCPServer(socketserver.ThreadingMixIn, socketserver.TCPServer):
+    pass
 
-    def __init__(self, obj, host='localhost', port=12345):
-        super(RemoteServer, self).__init__(host, port)
-        self.obj = obj
+class RemoteServer(object):
+
+    def __init__(self, host, port, obj=None):
+        self.server = socketserver.TCPServer((host, port), PuppetryHandler)
+        self.server.obj = obj
+
+    @property
+    def obj(self):
+        return self.server.obj
+
+    @obj.setter
+    def obj(self, value):
+        self.server.obj = value
 
     def start(self):
-        while True:
-            try:
-                if not self.client: self.accept()
+        self.server.serve_forever()
 
-                data = self.recv()
-                method_to_call = getattr(self.obj, data['name'])
-                result = method_to_call(**data['kwargs'])
-                self.send(result)
 
-            except KeyboardInterrupt:
-                break
+class RemoteServerThread(RemoteServer):
 
-            finally:
-                self.close()
+    def __init__(self, host, port, obj=None):
+        self.server = ThreadedTCPServer((host, port), PuppetryHandler)
+        self.thread = threading.Thread(target=self.server.serve_forever)
+
+        self.server.obj = obj
+
+    def __del__(self):
+        self.server.shutdown()
+        self.server.server_close()
+
+    def start(self):
+        self.thread.daemon = True
+        self.thread.start()
