@@ -1,4 +1,4 @@
-from puppetry import RemoteServer
+from puppetry import RemoteClient
 
 class HelloWorld(object):
 
@@ -13,15 +13,14 @@ class HelloWorld(object):
             return 'Hello ' + name
         return 'Hello ' + self.name
 
-
 if __name__ == "__main__":
     HOST, PORT = "localhost", 9999
 
-    server = RemoteServer(HOST, PORT)
-    server.obj = HelloWorld()
+    client = RemoteClient((HOST, PORT))
+    print(client.hello())
 
+    client.setup(name='Test')
+    print(client.hello())
 
-
-    # Activate the server; this will keep running until you
-    # interrupt the program with Ctrl-C
-    server.start()
+    client.name = 'puppetry'
+    print(client.hello())

@@ -11,37 +11,48 @@ puppetry
 
 Remote objects, like puppet.
 
+For a small project I need to communicate between two process. In one process I
+have a class which create an object. The other process should access the
+functions and variables of this object. The process play with the object like an
+puppetry.
+
 Install
 -------
 ::
 
   pip install puppetry
 
-Examples
---------
+Basic usage
+-----------
+Example class::
+
+  class HelloWorld(object):
+
+      def __init__(self, name=''):
+          self.name = name
+
+      def hello(self, name=None):
+          if name: return 'Hello ' + name
+          return 'Hello ' + self.name
 
 Server::
 
-  from puppetry.server import RemoteServer
+  from puppetry import RemoteServer
 
-  class HelloWorld(object):
-      def joke(self):
-          return "Spam spam spam"
-
-  server = RemoteServer(HelloWorld())
+  server = RemoteServer((HOST, PORT), obj=HelloWorld('world'))
   server.start()
 
 Client::
 
-  from puppetry.client import RemoteClient
+  from puppetry import RemoteClient
 
-  class HelloWorld(object):
-      def joke(self):
-          return "Spam spam spam"
+  client = RemoteClient((HOST, PORT))
+  print(client.hello())
 
-  client = RemoteClient(HelloWorld)
-  print(client.send('joke'))
+  client.name = 'puppetry'
+  print(client.hello())
 
+See more examples in the example folder.
 
 Development
 -----------
@@ -53,7 +64,7 @@ Create virtual environment and update dev-tools::
 
   python3 -m venv venv
   source venv/bin/activate
-  pip install --upgrade wheel pip setuptools twine
+  pip install --upgrade wheel pip setuptools twine tox
 
 Install local::
 

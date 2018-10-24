@@ -20,19 +20,18 @@ setup(
     author_email=about['__email__'],
     license=about['__license__'],
     long_description=readme(),
-    #long_description_content_type='text/markdown',
-    keywords='github wordpress backup sync',
+    keywords='socketserver socket pickle serializer',
     packages=find_packages(),
-    install_requires=[
-        'dill',
-    ],
+    #install_requires=[
+    #    'dill',
+    #],
     #entry_points = {
     #    'console_scripts': [
     #        'axju=axju.__main__:main',
     #    ],
     #},
-    test_suite='nose.collector',
-    tests_require=['nose'],
+    #test_suite='nose.collector',
+    #tests_require=['nose'],
     include_package_data=True,
     zip_safe=False,
     classifiers=[

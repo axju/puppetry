@@ -1,4 +1,5 @@
-from puppetry import ThreadedRemoteServer,  RemoteClient
+from puppetry import RemoteServer
+import dill
 
 class HelloWorld(object):
 
@@ -17,14 +18,5 @@ class HelloWorld(object):
 if __name__ == "__main__":
     HOST, PORT = "localhost", 9999
 
-    server = ThreadedRemoteServerr((HOST, PORT), obj=HelloWorld())
+    server = RemoteServer((HOST, PORT), obj=HelloWorld(), serializer=dill)
     server.start()
-
-    client = RemoteClient((HOST, PORT))
-    print(client.hello())
-
-    client.setup(name='Test')
-    print(client.hello())
-
-    client.name = 'AxJu'
-    print(client.hello())
